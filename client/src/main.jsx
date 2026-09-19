@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as pdfjsLib from 'pdfjs-dist';
 import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import './styles.css';
 import { registerPWA } from './pwa';
 import { hasSupabaseConfig, supabase } from './lib_supabase';
@@ -218,7 +221,7 @@ function App() {
         if (error) throw error;
       }
 
-      const res = await fetch('/api/flashcards', {
+      const res = await fetch('http://localhost:3001/api/flashcards', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ title: courseTitle || 'Nouveau cours', text: courseText })
       });
@@ -244,7 +247,7 @@ function App() {
     const historyBefore = chat.slice(-8);
     setChat(c => [...c, { role: 'user', text: question }]); setChatInput(''); setIsLoadingAI(true);
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch('http://localhost:3001/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ question, courseText, history: historyBefore })
       });
@@ -300,9 +303,19 @@ function App() {
         <div className="section-head"><h2>Mes paquets</h2></div><div className="deck-grid">{deckViews.map(d => <div className="deck" key={d.id} onClick={() => openStudy(d.id)}><span className="subject">{d.subject}</span><h3>{d.name}</h3><p>{d.count} cartes</p><div className="progress"><i style={{ width: `${Math.round(d.mastered / Math.max(d.count, 1) * 100)}%` }} /></div></div>)}</div>
       </section>}
 
-      {tab === 'study' && <section className="study-wrap">{!currentCard ? <div className="empty"><h2>Rien à réviser ici 🎉</h2><p>Ajoute un cours ou choisis un autre paquet.</p></div> : <div className="study-card"><div className="study-top"><span>{activeDeck ? deckViews.find(d => d.id === activeDeck)?.name : 'Révision du jour'}</span><span>{studyIndex + 1}/{currentStudyCards.length}</span></div><div className="question"><span className="tag">Question</span><h2>{currentCard.question}</h2></div>{showAnswer ? <div className="answer"><span className="tag">Réponse</span><ReactMarkdown>{currentCard.answer}</ReactMarkdown></div> : <button className="reveal" onClick={() => setShowAnswer(true)}>Afficher la réponse</button>}{showAnswer && <div className="ratings">{LEVELS.map(level => <button key={level} onClick={() => rateCard(level)}>{level}</button>)}</div>}</div>}</section>}
+      {tab === 'study' && <section className="study-wrap">{!currentCard ? <div className="empty"><h2>Rien à réviser ici 🎉</h2><p>Ajoute un cours ou choisis un autre paquet.</p></div> : <div className="study-card"><div className="study-top"><span>{activeDeck ? deckViews.find(d => d.id === activeDeck)?.name : 'Révision du jour'}</span><span>{studyIndex + 1}/{currentStudyCards.length}</span></div><div className="question"><span className="tag">Question</span><h2>{currentCard.question}</h2></div>{showAnswer ? <div className="answer"><span className="tag">Réponse</span><ReactMarkdown
+  remarkPlugins={[remarkMath]}
+  rehypePlugins={[rehypeKatex]}
+>
+  {currentCard.answer}
+</ReactMarkdown></div> : <button className="reveal" onClick={() => setShowAnswer(true)}>Afficher la réponse</button>}{showAnswer && <div className="ratings">{LEVELS.map(level => <button key={level} onClick={() => rateCard(level)}>{level}</button>)}</div>}</div>}</section>}
 
-      {tab === 'ai' && <section className="ai-wrap"><div className="chat-panel"><div className="chat-intro"><span className="ai-orb">✦</span><div><h2>Ton professeur particulier</h2><p>La conversation utilise le cours actuellement chargé.</p></div></div><div className="course-context"><span>Cours utilisé par l’IA</span><select value={currentCourseId || ''} onChange={e => { const c = courses.find(x => x.id === e.target.value); if (c) selectCourse(c); }}><option value="">Tous / texte actuel</option>{courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}</select></div><div className="chat-messages">{chat.length === 0 && <div className="suggestions"><button onClick={() => setChatInput('Explique-moi la dernière notion de mon cours simplement.')}>Explique-moi simplement</button><button onClick={() => setChatInput('Interroge-moi sur mon cours, une question à la fois.')}>Interroge-moi</button><button onClick={() => setChatInput('Donne-moi un exercice de niveau prépa basé sur mon cours.')}>Crée un exercice</button></div>}{chat.map((m, i) => <div key={i} className={m.role === 'user' ? 'bubble user' : 'bubble'}><ReactMarkdown>{m.text}</ReactMarkdown></div>)}{isLoadingAI && <div className="bubble">Réflexion…</div>}</div><div className="chat-input"><textarea value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askAI(); } }} placeholder="Demande-moi quelque chose…" /><button className="primary" onClick={askAI} disabled={isLoadingAI}>Envoyer</button></div></div></section>}
+      {tab === 'ai' && <section className="ai-wrap"><div className="chat-panel"><div className="chat-intro"><span className="ai-orb">✦</span><div><h2>Ton professeur particulier</h2><p>La conversation utilise le cours actuellement chargé.</p></div></div><div className="course-context"><span>Cours utilisé par l’IA</span><select value={currentCourseId || ''} onChange={e => { const c = courses.find(x => x.id === e.target.value); if (c) selectCourse(c); }}><option value="">Tous / texte actuel</option>{courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}</select></div><div className="chat-messages">{chat.length === 0 && <div className="suggestions"><button onClick={() => setChatInput('Explique-moi la dernière notion de mon cours simplement.')}>Explique-moi simplement</button><button onClick={() => setChatInput('Interroge-moi sur mon cours, une question à la fois.')}>Interroge-moi</button><button onClick={() => setChatInput('Donne-moi un exercice de niveau prépa basé sur mon cours.')}>Crée un exercice</button></div>}{chat.map((m, i) => <div key={i} className={m.role === 'user' ? 'bubble user' : 'bubble'}><ReactMarkdown
+  remarkPlugins={[remarkMath]}
+  rehypePlugins={[rehypeKatex]}
+>
+  {m.text}
+</ReactMarkdown></div>)}{isLoadingAI && <div className="bubble">Réflexion…</div>}</div><div className="chat-input"><textarea value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askAI(); } }} placeholder="Demande-moi quelque chose…" /><button className="primary" onClick={askAI} disabled={isLoadingAI}>Envoyer</button></div></div></section>}
     </main>
 
     <nav className="mobile-nav">{[['home','⌂','Accueil'],['courses','▤','Cours'],['study','◉','Réviser'],['ai','✦','IA']].map(([id, icon, label]) => <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}><span>{icon}</span><small>{label}</small></button>)}<button onClick={installApp}><span>⬇</span><small>Installer</small></button></nav>
