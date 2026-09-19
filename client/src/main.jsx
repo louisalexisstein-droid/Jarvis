@@ -230,7 +230,7 @@ function App() {
         if (error) throw error;
       }
 
-      const res = await fetch('http://localhost:3001/api/flashcards', {
+      const res = await fetch('https://jarvis-2k65.onrender.com/api/flashcards', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ title: courseTitle || 'Nouveau cours', text: courseText })
       });
@@ -256,7 +256,7 @@ function App() {
     const historyBefore = chat.slice(-8);
     setChat(c => [...c, { role: 'user', text: question }]); setChatInput(''); setIsLoadingAI(true);
     try {
-      const res = await fetch('http://localhost:3001/api/chat', {
+      const res = await fetch('https://jarvis-2k65.onrender.com/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ question, courseText, history: historyBefore })
       });
